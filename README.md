@@ -14,7 +14,10 @@ This is an example to enable the proxy on NGINX:
 	    autoindex off;
 	    fastcgi_split_path_info ^(.+\.php)(/.+)$;
 	    include        fastcgi_params;
-	    fastcgi_param  QUERY_STRING $query_string;
+	    fastcgi_param  ACME_DST_PORT 80;
+	    fastcgi_param  ACME_TLS false;
+	    fastcgi_param  ACME_TLS_VERIFY true;
+	    fastcgi_param  ACME_DOMAINS .example.com,.example.net;
 	    fastcgi_intercept_errors off;
 	    fastcgi_pass  unix:/var/run/php-www.socket;
 	    fastcgi_param  SCRIPT_FILENAME $document_root/acme_proxy.php;
