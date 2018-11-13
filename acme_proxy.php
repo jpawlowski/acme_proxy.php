@@ -10,7 +10,7 @@
  * @copyright  2018 Julian Pawlowski
  * @license    https://github.com/jpawlowski/acme_proxy.php/blob/master/LICENSE BSD 2-Clause License
  * @link       https://github.com/jpawlowski/acme_proxy.php
- * @version    0.2.0
+ * @version    0.2.1
  */
 
 // default settings
@@ -38,8 +38,9 @@ function proxyError($type, $detail, $identifier, $code = 503)
         $err->identifier->type = "http";
         $err->identifier->value = $identifier;
     }
+    header("Content-Type: application/problem+json");
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.2.0");
+    header("X-Powered-By: ACME-Proxy/0.2.1");
     http_response_code($code);
     die(json_encode($err, JSON_PRETTY_PRINT));
 }
@@ -185,7 +186,7 @@ if ($httpcode == 200) {
     header_remove('Server');
 
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.2.0");
+    header("X-Powered-By: ACME-Proxy/0.2.1");
     die($body);
 } else {
     proxyError("rejectedIdentifier", "Unknown identifier", $identifier, 403);
