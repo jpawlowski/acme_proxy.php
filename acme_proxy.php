@@ -10,7 +10,7 @@
  * @copyright  2018 Julian Pawlowski
  * @license    https://github.com/jpawlowski/acme_proxy.php/blob/master/LICENSE BSD 2-Clause License
  * @link       https://github.com/jpawlowski/acme_proxy.php
- * @version    0.1.1
+ * @version    0.2.0
  */
 
 // default settings
@@ -39,7 +39,7 @@ function proxyError($type, $detail, $identifier, $code = 503)
         $err->identifier->value = $identifier;
     }
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.1.1");
+    header("X-Powered-By: ACME-Proxy/0.2.0");
     http_response_code($code);
     die(json_encode($err, JSON_PRETTY_PRINT));
 }
@@ -80,16 +80,16 @@ if (!preg_match("/^(?=^.{1,253}$)(([a-z\d]([a-z\d-]{0,62}[a-z\d])*[\.]){1," . $f
 }
 
 // add flexibility to forward to port !=80
-if (isset($_REQUEST['acme_dst_port'])) {
-    if (!preg_match("/^\d+$/", $_REQUEST['acme_dst_port'])) {
-        proxyError("malformed", "Invalid destination port", $identifier, 405);
+if (isset($_SERVER['ACME_DST_PORT'])) {
+    if (!preg_match("/^\d+$/", $_SERVER['ACME_DST_PORT'])) {
+        proxyError("serverInternal", "Invalid destination port", $identifier);
     }
 
-    $port = $_REQUEST['acme_dst_port'];
+    $port = $_SERVER['ACME_DST_PORT'];
 }
 
 // add flexibility to forward requests via TLS
-if ($_REQUEST['acme_tls'] == "true" || $port == 443) {
+if ($_SERVER['ACME_TLS'] == "true" || $port == 443) {
     $proto = "https://";
 
     // Implicit port change
@@ -98,9 +98,32 @@ if ($_REQUEST['acme_tls'] == "true" || $port == 443) {
     }
 
     // add flexibility to disable peer verification
-    if ($_REQUEST['acme_tls_verify'] == "false") {
+    if ($_SERVER['ACME_TLS_VERIFY'] == "false") {
         $tls_verify = false;
     }
+}
+
+if (isset($_SERVER['ACME_DOMAINS'])) {
+    $domains = explode(",", $_SERVER['ACME_DOMAINS']);
+} else {
+    $host_domainname = strstr($_SERVER['SERVER_NAME'], ".");
+    if (isset($host_domainname) && $host_domainname != "") {
+        $domains[] = strstr($_SERVER['SERVER_NAME'], ".");
+    }
+}
+
+$valid_domain = false;
+if (count($domains) > 0) {
+    foreach ($domains as $domain) {
+        if (preg_match("/".$domain."$/", $host)) {
+            $valid_domain = true;
+            break;
+        }
+    }
+}
+
+if ($valid_domain == false) {
+    proxyError("connection", "Not serving this domain", $identifier);
 }
 
 $host_ipl = proxyGethostbynamel6($host);
@@ -121,7 +144,7 @@ foreach ($host_ipl as $ip) {
 }
 
 if (count($host_ipl_filtered) < 1) {
-    proxyError("serverInternal", "DNS error", $identifier);
+    proxyError("connection", "DNS error", $identifier);
 }
 
 // prepare request
@@ -162,7 +185,7 @@ if ($httpcode == 200) {
     header_remove('Server');
 
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.1.1");
+    header("X-Powered-By: ACME-Proxy/0.2.0");
     die($body);
 } else {
     proxyError("rejectedIdentifier", "Unknown identifier", $identifier, 403);
