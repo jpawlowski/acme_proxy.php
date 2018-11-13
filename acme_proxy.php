@@ -10,15 +10,13 @@
  * @copyright  2018 Julian Pawlowski
  * @license    https://github.com/jpawlowski/acme_proxy.php/blob/master/LICENSE BSD 2-Clause License
  * @link       https://github.com/jpawlowski/acme_proxy.php
- * @version    0.1
+ * @version    0.1.1
  */
 
 // default settings
 //
 
 $proto = "http://";
-$host = strstr($_SERVER['HTTP_HOST'], ':', true);
-$uri = $_SERVER['DOCUMENT_URI']."?acme_proxy_request=1";
 $port = 80;
 $tls_verify = true;
 $fqdn_levels = 5;
@@ -32,14 +30,16 @@ function proxyError($type, $detail, $identifier, $code = 503)
     // Based on https://github.com/ietf-wg-acme/acme/blob/master/draft-ietf-acme-acme.md
     // See section "Errors"
 
+    $err = new \stdClass();
     $err->type = "urn:acme-proxy:params:acme:error:".$type;
     $err->detail = $detail;
     if (isset($identifier)) {
+        $err->identifier = new \stdClass();
         $err->identifier->type = "http";
         $err->identifier->value = $identifier;
     }
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.1");
+    header("X-Powered-By: ACME-Proxy/0.1.1");
     http_response_code($code);
     die(json_encode($err, JSON_PRETTY_PRINT));
 }
@@ -47,10 +47,12 @@ function proxyError($type, $detail, $identifier, $code = 503)
 function proxyGethostbynamel6($hostname)
 {
     $result = array();
-    $result	= gethostbynamel($hostname);
-    $records6	= dns_get_record($hostname, DNS_AAAA);
-    foreach ($records6 as $record => $value) {
-        $result[] = $value['ipv6'];
+    $result	= @gethostbynamel($hostname);
+    $records6	= @dns_get_record($hostname, DNS_AAAA);
+    if (is_array($records6)) {
+        foreach ($records6 as $record => $value) {
+            $result[] = $value['ipv6'];
+        }
     }
     return $result;
 }
@@ -59,17 +61,22 @@ function proxyGethostbynamel6($hostname)
 // main program code
 //
 
-list($rpath, $wn, $wnproto, $identifier) = explode("/", $uri, 4);
+list($rpath, $wn, $wnproto, $identifier) = explode("/", $_SERVER['DOCUMENT_URI'], 4);
 if ($wn != ".well-known" || $wnproto != "acme-challenge" || !isset($identifier) || $identifier == "") {
     proxyError("malformed", "Missing challenge identifier", null, 405);
 }
+$uri = $_SERVER['DOCUMENT_URI']."?acme_proxy_request=1";
 
 if (isset($_REQUEST['acme_proxy_request'])) {
     proxyError("serverInternal", "Loop detected", $identifier);
 }
 
+$host = $_SERVER['HTTP_HOST'];
+if (preg_match("/:\d*$/", $host)) {
+    $host = strstr($_SERVER['HTTP_HOST'], ':', true);
+}
 if (!preg_match("/^(?=^.{1,253}$)(([a-z\d]([a-z\d-]{0,62}[a-z\d])*[\.]){1," . $fqdn_levels . "}[a-z]{1,61})$/", $host)) {
-    proxyError("malformed", "Invalid FQDN format in Host request header", $identifier, 405);
+    proxyError("malformed", "Invalid FQDN format in Host request header: $host", $identifier, 405);
 }
 
 // add flexibility to forward to port !=80
@@ -101,6 +108,7 @@ $host_ipl_filtered = array();
 foreach ($host_ipl as $ip) {
     if (
       $ip == "::1" ||
+      $ip == $_SERVER['SERVER_ADDR'] ||
       preg_match("/^127\..*/", $ip)
     ) {
         proxyError("serverInternal", "Validation target blocked", $identifier);
@@ -123,9 +131,11 @@ curl_setopt($ch, CURLOPT_HEADER, true);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-    'Cache-Control: no-cache'
+    "Cache-Control: no-cache"
 ));
-curl_setopt($ch, CURLOPT_RESOLVE, "$host:$port:" . implode(",", $host_ipl_filtered));
+curl_setopt($ch, CURLOPT_RESOLVE, array(
+    $host.":".$port.":" . implode(",", $host_ipl_filtered)
+));
 
 // send request
 $data = curl_exec($ch);
@@ -152,7 +162,7 @@ if ($httpcode == 200) {
     header_remove('Server');
 
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.1");
+    header("X-Powered-By: ACME-Proxy/0.1.1");
     die($body);
 } else {
     proxyError("rejectedIdentifier", "Unknown identifier", $identifier, 403);
