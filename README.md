@@ -1,5 +1,5 @@
 # acme_proxy.php
-A PHP script to proxy [ACME](https://en.wikipedia.org/wiki/Automated_Certificate_Management_Environment) challenge validation requests towards multiple backend server, based on the hosts local DNS results.
+A PHP script to proxy [ACME](https://en.wikipedia.org/wiki/Automated_Certificate_Management_Environment) challenge validation requests towards multiple backend servers, based on the hosts local DNS results.
 
 ## NGINX configuration
 This is an example to enable the proxy on NGINX:
