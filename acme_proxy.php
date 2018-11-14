@@ -168,9 +168,9 @@ foreach ($host_ipl as $ip) {
     } elseif (!(
       preg_match("/^169\.254\..*/", $ip) &&
       preg_match("/^fe8.*/", $ip) &&
-      preg_match("/^fe9:.*/", $ip) &&
-      preg_match("/^fea:.*/", $ip) &&
-      preg_match("/^feb:.*/", $ip)
+      preg_match("/^fe9.*/", $ip) &&
+      preg_match("/^fea.*/", $ip) &&
+      preg_match("/^feb.*/", $ip)
     )) {
         $host_ipl_filtered[] = $ip;
     }
