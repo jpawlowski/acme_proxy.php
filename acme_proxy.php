@@ -10,7 +10,7 @@
  * @copyright  2018 Julian Pawlowski
  * @license    https://github.com/jpawlowski/acme_proxy.php/blob/master/LICENSE BSD 2-Clause License
  * @link       https://github.com/jpawlowski/acme_proxy.php
- * @version    0.2.1
+ * @version    0.2.2
  *
  *
  * LICENSE:
@@ -40,7 +40,7 @@
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 
 // default settings
 //
@@ -69,7 +69,7 @@ function proxyError($type, $detail, $identifier, $code = 503)
     }
     header("Content-Type: application/problem+json");
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.2.1");
+    header("X-Powered-By: ACME-Proxy/0.2.2");
     http_response_code($code);
     die(json_encode($err, JSON_PRETTY_PRINT));
 }
@@ -167,7 +167,10 @@ foreach ($host_ipl as $ip) {
         proxyError("serverInternal", "Validation target blocked", $identifier);
     } elseif (!(
       preg_match("/^169\.254\..*/", $ip) &&
-      preg_match("/^fe80:.*/", $ip)
+      preg_match("/^fe8.*/", $ip) &&
+      preg_match("/^fe9:.*/", $ip) &&
+      preg_match("/^fea:.*/", $ip) &&
+      preg_match("/^feb:.*/", $ip)
     )) {
         $host_ipl_filtered[] = $ip;
     }
@@ -215,7 +218,7 @@ if ($httpcode == 200) {
     header_remove('Server');
 
     header("Cache-Control: no-store");
-    header("X-Powered-By: ACME-Proxy/0.2.1");
+    header("X-Powered-By: ACME-Proxy/0.2.2");
     die($body);
 } else {
     proxyError("rejectedIdentifier", "Unknown identifier", $identifier, 403);
