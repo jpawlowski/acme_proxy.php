@@ -18,8 +18,13 @@ This is an example to enable the proxy on NGINX:
 	    fastcgi_param  ACME_TLS false;
 	    fastcgi_param  ACME_TLS_VERIFY true;
 	    fastcgi_param  ACME_DOMAINS .example.com,.example.net;
+	    #fastcgi_param  ACME_DNS_SERVERS 192.168.0.1,192.168.0.2;
+	    #fastcgi_param  ACME_DNS_PORT 53;
 	    fastcgi_intercept_errors off;
 	    fastcgi_pass  unix:/var/run/php-www.socket;
 	    fastcgi_param  SCRIPT_FILENAME $document_root/acme_proxy.php;
 	  }
 	}
+
+## Using custom DNS resolver
+This will require to install [Net_DNS2](https://netdns2.com).
